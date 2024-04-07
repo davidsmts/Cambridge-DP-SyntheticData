@@ -26,10 +26,10 @@ def hist_rwm(n, x, database, epsilon):
     hist_of_SD = stats.rv_histogram(np.histogram(database, bins=int(np.sqrt(n)), weights=perturbed_weights), density=False)
     return hist_of_database, hist_of_SD
 
-def rwm(n, x, database, epsilon):
+def rwm(n, x, database, epsilon, dim=1):
     n = len(database)
     alpha = epsilon*n
-    perturbed_weights = perturb_weights(n, alpha)
+    perturbed_weights = perturb_weights(n, alpha, dim=dim)
     uniform_weights = np.full((n,),1/n)
     # get histograms
     hist_of_database = stats.rv_histogram(np.histogram(database, bins=int(np.sqrt(n)), density=False))
@@ -40,7 +40,7 @@ def rwm(n, x, database, epsilon):
     W1 = metrics.W1(database, database, uniform_weights, perturbed_weights)
     return KS, L2, W1
 
-def perturb_weights(n, alpha):
+def perturb_weights(n, alpha, dim=1):
     random_walk = data.get_superregular_rw(n)
     U = random_walk*2/alpha
     #U = random_walk

@@ -1,8 +1,13 @@
 import numpy as np
+from discrete_laplace import DiscreteLaplace
 
 
 def laplacian_noise(loc, sigma, shape=None):
     return np.random.laplace(loc, sigma, shape)
+
+def discrete_laplacian_noise(sigma, shape=None, bounds=(0, 1)):
+    lap = DiscreteLaplace(a = bounds[0], b = bounds[1])
+    return lap.rvs(sigma, shape)
 
 def gaussian_noise(N, L2_sensitivity, epsilon, delta):
     variance = 2*np.log(1.25 / delta) * L2_sensitivity**2 / epsilon**2

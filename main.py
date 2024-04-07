@@ -9,6 +9,7 @@ import ot as pot
 import data_generator as data
 import subsampling_method as vershynin
 import rwm
+import pmm
 
 np.random.seed(42)
 
@@ -249,7 +250,7 @@ elif test == "maxsuperregular-rw":
         plt.plot(Ns, row, linestyle="dashed")
     plt.plot(Ns, [3*np.log(n)**(3/2) for n in Ns], label="(log(n))^2")
     plt.legend()
-    fig.savefig('./imgs/algos/pmm/maxrw.png', dpi=300, bbox_inches='tight')
+    fig.savefig('./imgs/algos/rwm/maxrw.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 elif test == "show-haar":
@@ -267,10 +268,10 @@ elif test == "show-haar":
     plt.xticks(xt, )
     #plt.xticks(x, [0 for _ in range(n-1)]+[n])
     plt.yticks([-2**(k-1)/n, 0, 2**(k-1)/n], [- 2**(k-1)/n, 0, 2**(k-1)/n])
-    fig.savefig('./imgs/algos/pmm/haar'+str(j)+'.png', dpi=300, bbox_inches='tight')
+    fig.savefig('./imgs/algos/rwm/haar'+str(j)+'.png', dpi=300, bbox_inches='tight')
     plt.show()
 
-elif test == "asymptotic-pmm":
+elif test == "asymptotic-rwm":
     epsilon = 1
     Ns = [5000, 10000, 40000, 70000, 100000, 500000]
     database = data.schoel_balog_tostik_sample(max(Ns),1)
@@ -283,7 +284,7 @@ elif test == "asymptotic-pmm":
     for rep in range(m):
         if rep%10 == 0:
             print(rep)
-        KS, L2, W1 = rwm.asymptotic_pmm(Ns, x, database, epsilon)
+        KS, L2, W1 = rwm.asymptotic_rwm(Ns, x, database, epsilon)
         all_KS.append(KS)
         all_L2.append(L2)
         all_W1.append(W1)
@@ -294,28 +295,28 @@ elif test == "asymptotic-pmm":
         plt.plot(Ns, np.mean(all_W1, axis=0), label="W1", linestyle="dotted")
         plt.plot(Ns, (1e-2)*rwm.asymptotic_ub_acc(Ns, epsilon), label="log(n)^(3/2)/alpha")
         plt.legend()
-        fig.savefig('./imgs/algos/pmm/asymptotic_pmm.png', dpi=300, bbox_inches='tight')
+        fig.savefig('./imgs/algos/rwm/asymptotic_rwm.png', dpi=300, bbox_inches='tight')
     else:
         plt.loglog(Ns, np.mean(all_KS, axis=0), label="KS", linestyle="dashed")
         plt.loglog(Ns, np.mean(all_L2, axis=0), label="L2", linestyle="dashed")
         plt.loglog(Ns, np.mean(all_W1, axis=0), label="W1", linestyle="dotted")
         plt.loglog(Ns, (1e-2)*rwm.asymptotic_ub_acc(Ns, epsilon), label="log(n)^(3/2)/alpha")
         plt.legend()
-        fig.savefig('./imgs/algos/pmm/asymptotic_pmm_loglog.png', dpi=300, bbox_inches='tight')
+        fig.savefig('./imgs/algos/rwm/asymptotic_rwm_loglog.png', dpi=300, bbox_inches='tight')
     plt.show()
 
-elif test == "show-pmmhist":
+elif test == "show-rwmhist":
     n = int(arguments[2])
     epsilon = 0.1
     database = data.schoel_balog_tostik_sample(n,0)
     database = database.reshape((n,))
     x = np.linspace(min(database), max(database), 3000)
-    hist1, hist2 = rwm.hist_pmm(n, x, database, epsilon)
+    hist1, hist2 = rwm.hist_rwm(n, x, database, epsilon)
     fig=plt.figure(figsize=(7,6))
     plt.plot(x, hist1.pdf(x), label="hist of std measure")
     plt.plot(x, hist2.pdf(x), label="hist of perturbed measure")
     plt.legend(loc="upper right")
-    fig.savefig('./imgs/algos/pmm/hist'+str(n)+'.png')
+    fig.savefig('./imgs/algos/rwm/hist'+str(n)+'.png')
     plt.show()
 
 
@@ -327,39 +328,63 @@ elif test == "compare1":
     # Based on Theorem 2.2 in the vershynin paper
     # n_from_paper = np.ceil(2/(epsilon*delta) * len(test_functions)*np.log(len(test_functions)/gamma)).astype(int)
     #Ns = [int(np.exp(i)) for i in range(int(np.ceil(np.log(1000))), int(np.log(50000)))]
-    Ns = [1000, 5000, 10000, 30000, 100000]
+    Ns = [1000, 5000, 10000]
     print(Ns)
     database = data.schoel_balog_tostik_sample(max(Ns),1)
     database = database.reshape((len(database),))
     x = np.linspace(min(database), max(database), 1000)
-    m = 5
+    d = 1
+    reps = 10
     all_RKHS_kme = []
-    all_W1_pmm = []
+    all_W1_rwm = []
     all_W1_phist = []
     all_W1_shist = []
-    for rep in range(m):
-        if rep%10 == 0:
+    all_W1_pmm = []
+    for rep in range(reps):
+        if rep%3 == 0:
             print(rep)
-        _, _, W1_pmm = rwm.asymptotic_pmm(Ns, x, database, epsilon)
+        _, _, W1_rwm = rwm.asymptotic_rwm(Ns, x, database, epsilon)
         _, _, W1_phist = hist.asymptotic_perturbed(Ns, x, database, epsilon)
         _, _, W1_shist = hist.asymptotic_smooth(Ns, x, database, epsilon)
         rkhs_kme = kme.asymptotic_kme(Ns,1,epsilon)
-        all_W1_pmm.append(W1_pmm)
+        W1_pmm = pmm.asymptotic_pmm(Ns, x, database, epsilon)
+        all_W1_rwm.append(W1_rwm)
         all_W1_phist.append(W1_phist)
         all_W1_shist.append(W1_shist)
         all_RKHS_kme.append(rkhs_kme)
+        all_W1_pmm.append(W1_pmm)
 
-    all_W1_pmm = np.mean(all_W1_pmm, axis=0)
+    all_W1_rwm = np.mean(all_W1_rwm, axis=0)
     all_RKHS_kme = np.mean(all_RKHS_kme, axis=0)
     all_RKHS_kme = all_RKHS_kme.reshape((len(all_RKHS_kme),))
     all_W1_phist = np.mean(all_W1_phist, axis=0)
     all_W1_shist = np.mean(all_W1_shist, axis=0)
+    all_W1_pmm = np.mean(all_W1_pmm, axis=0)
 
     fig=plt.figure(figsize=(7,6))
-    plt.loglog(Ns, all_W1_pmm, label="Private measure algo in W1", linestyle="solid")
+    plt.loglog(Ns, all_W1_rwm, label="Private measure algo in W1", linestyle="solid")
     plt.loglog(Ns, all_RKHS_kme, label="KME Algo in RKHS dist", linestyle="dashed")
     plt.loglog(Ns, all_W1_phist, label="perturbed hist in W1", linestyle="dotted")
     plt.loglog(Ns, all_W1_shist, label="smooth hist in W1", linestyle="dashdot")
+    plt.loglog(Ns, all_W1_pmm, label="PMM in W1", linestyle="--")
     plt.legend()
     fig.savefig('./imgs/algos/compareall_loglog.png', dpi=300, bbox_inches='tight')
     plt.show()
+
+elif test == "show_pmm":
+    n = 1000
+    database = data.schoel_balog_tostik_sample(n, 1)
+    r = int(np.log2(n))
+    synthetic_data = pmm.pmm(database, depth=r)
+    print(database.shape)
+    print(synthetic_data.shape)
+    x = np.linspace(min(database),max(database),1000)
+    database_hist = stats.rv_histogram(np.histogram(database, bins=int(np.sqrt(len(database)))))
+    sd_hist = stats.rv_histogram(np.histogram(synthetic_data, bins=int(np.sqrt(len(synthetic_data)))))
+    fig=plt.figure(figsize=(7,6))
+    plt.plot(x, database_hist.pdf(x), label="database")
+    plt.plot(x, sd_hist.pdf(x), label="synthetic data")
+    plt.legend()
+    fig.savefig('./imgs/algos/pmm/hist'+str(r)+'.png', dpi=300, bbox_inches='tight')
+    plt.show()
+

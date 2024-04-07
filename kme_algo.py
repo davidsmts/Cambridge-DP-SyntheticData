@@ -29,7 +29,6 @@ def SBT_RKHS_algo(database, public=True, Ms=[100], epsilons=[1], delta=1e-6):
     # and now only have to select the appropriate subspaces
     dists_by_M = []
     for M in Ms:
-        print(M)
         # take a random subsample (wlog the first m points) or create new sample from same space
         if public:
             public_data = database[:M]
@@ -133,7 +132,6 @@ def show(amt=10000, dim=1):
     #maxM = int(np.sqrt(amt))
     Ms = [int(np.exp(e)) for e in np.linspace(np.log(10), np.log(400), 100)]
     Ms = [e for e, _ in itertools.groupby(Ms)]
-    print(Ms)
     dists = SBT_RKHS_algo(database, public=False, Ms=Ms, epsilons=epsilons, delta=delta)
     dists = np.array(dists).T
     fig=plt.figure(figsize=(7,6))
