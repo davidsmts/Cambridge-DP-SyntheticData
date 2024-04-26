@@ -123,7 +123,7 @@ def asymptotic_pmm(Ns, database=[], epsilon=0, dim=1):
         #w1 = metrics.multivW1(database[:n], synthetic_data)
         W1_dists.append(w1)
         # INITIALISE HISTOGRAMS TO COMPUTE L2 AND KS DISTANCES and initialise m
-        m = int(n**(dim/(2+dim)))
+        m = int(np.sqrt(n))
         Hist_DB = Histogram(database[:n], bin_amt=m, dim=dim, delta=0)
         Hist_SD = Histogram(synthetic_data, bin_amt=m, dim=dim, delta=0)
         # COMPUTE L2 DISTANCE

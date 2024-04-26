@@ -42,9 +42,11 @@ class Histogram:
             vals[index] = 0
         return vals
     
+    #
     def pdf(self, x):
         return self.evaluate(x)
 
+    #
     def get_counts(self):
         bin_amts = np.full(self.dim, fill_value=self.bin_amt)
         #print("np hsitdd")
@@ -55,6 +57,7 @@ class Histogram:
         self.counts = true_counts
         self.probabilities = true_counts / np.sum(true_counts)
 
+    #
     def sample(self, amt, dim=1):
         initial_shape = self.probabilities.shape
         flat_p = self.probabilities.flatten()
@@ -63,6 +66,7 @@ class Histogram:
         points = self.get_points_from_indices(ddim_indices)
         return points
     
+    #
     def get_indices(self, choices):
         indices = []
         for choice in choices:
@@ -73,6 +77,7 @@ class Histogram:
             indices.append(index_k)
         return indices
     
+    #
     def get_indices_new(self, choices, flat_p):
         indices = []
         index_tensor = np.reshape(np.arange(len(flat_p)), newshape=self.probabilities.shape)
@@ -82,6 +87,7 @@ class Histogram:
 
         return indices
     
+    #
     def get_points_from_indices(self, indices):
         points = []
         for j, index in enumerate(indices):
@@ -97,12 +103,35 @@ class Histogram:
             points.append(list(point)[0])
         return np.array(points)
 
+    #
     def set_smooth(self):
         self.counts = (1-self.delta)*self.counts + self.delta
         #self.counts = hist_vals
         newprobs = (1-self.delta)*self.probabilities + self.delta
         self.probabilities = newprobs / np.sum(newprobs)
         #return (hist_vals, self.boundaries[0])
+
+    #
+    def set_perturbed(self, noise=[]):
+        if len(noise) == 0:
+            np.random.laplace(0, 8, (self.bin_amt for _ in range(self.dim)))
+        D = self.counts + noise.reshape(self.counts.shape)
+        D[D<0] = 0
+        p = D / np.sum(D)
+        self.noisy_counts = D
+        self.probabilities = p
+
+    
+    #
+    def set_rwm_perturbed(self, noise=[]):
+        if len(noise) == 0:
+            noise = data.get_superregular_rw(self.bin_amt**self.dim)
+        D = self.counts + noise.reshape(self.counts.shape)
+        D[D<0] = 0
+        p = D / np.sum(D)
+        self.noisy_counts = D
+        self.probabilities = p
+
 
 # one dimensional histogram on the interval [a,b]
 def histogram(x, data, bin_amt, closed_interval=(0,1)):
@@ -354,14 +383,14 @@ def show_perturbed():
     plt.legend(loc='upper right')
     plt.show()
 
-def asymptotic_perturbed(Ns, database=[], epsilon=1, dim=1):
+def asymptotic_perturbed(Ns, database=[], epsilon=1, dim=1, rwm=False):
     all_KS = []
     all_L2 = []
     all_W1 = []
     times = []
     all_TF = []
     for n in Ns:
-        n_time, KS, L2, W1, TF = get_perturbed_accuracy(database[:n], epsilon, dim=dim)
+        n_time, KS, L2, W1, TF = get_perturbed_accuracy(database[:n], epsilon, dim=dim, rwm=rwm)
         all_KS.append(KS)
         all_L2.append(L2)
         all_W1.append(W1)
@@ -388,7 +417,7 @@ def asymptotic_smooth(Ns, database=[], epsilon=1, dim=1):
 
     return times, all_KS, all_L2, all_W1, all_TF
 
-def get_perturbed_accuracy(database, epsilon, x=[], dim=1):
+def get_perturbed_accuracy(database, epsilon, x=[], dim=1, rwm=False):
     start_time = time.time()
     #
     n = len(database)
@@ -402,14 +431,19 @@ def get_perturbed_accuracy(database, epsilon, x=[], dim=1):
     #    x = np.linspace(min(database), max(database), 1000)
     # choose bin amount based on sqrt rule
 
-    # Generate noise based on wasserstein&zhou paper
-    LapNoise = data.WZ_Lap_noise(epsilon, m, dim=dim)
-    # Create a perturbed histogram
-    histogram = PerturbedHistogram(database, LapNoise, bin_amt=m)
+    if rwm:
+        histogram = Histogram(data=database, bin_amt=m, dim=dim)
+        histogram.set_rwm_perturbed()
+    else:
+        # Generate noise based on wasserstein&zhou paper
+        LapNoise = data.WZ_Lap_noise(epsilon, m, dim=dim)
+        # Create a perturbed histogram
+        histogram = Histogram(data=database, bin_amt=m, dim=dim)
+        histogram.set_perturbed(LapNoise)
     # Set k to .. based on Wasserstein&Zhou paper
     k = len(database)
     # Sample k points from our histogram
-    synthetic_data = histogram.sample(k, dim=dim)
+    synthetic_data = histogram.sample(amt=k, dim=dim)
 
     # create a density estimation of this via .. 
     #F_Y = stats.rv_histogram(np.histogram(synthetic_data, bins=k))
@@ -438,7 +472,7 @@ def get_smooth_accuracy(database, dim=1, distance="L2", epsilon=1):
     n = len(database)
     #
     k_KS = int((n**(4/(6+dim))))
-    m_KS = int(n**(dim/(6+dim)))
+    m_KS = int(n**(dim/(2+dim)))
     delta_KS = m_KS*k_KS/(n*epsilon)
     #
     delta_L2 = n**(-1/(dim+3))
@@ -471,6 +505,9 @@ def get_smooth_accuracy(database, dim=1, distance="L2", epsilon=1):
     W1 = metrics.multivW1(database, synthetic_data_KS)
     L2 = metrics.smartL2_hypercube(SD_Hist_L2.probabilities, Data_Hist_L2.probabilities, m_L2)
     KS = metrics.smartKS_hypercube(SD_Hist_KS.probabilities, Data_Hist_KS.probabilities, m_KS)
+    #print("--------KS---------")
+    #print(synthetic_data_KS)
+    #print(KS)
     # TF
     test_functions = data.get_binary_testfunctions_upto(dimension=dim, max_order=False)
     TF = metrics.wrt_marginals(test_functions=test_functions, sample1=database, sample2=synthetic_data_L2, dim=dim)

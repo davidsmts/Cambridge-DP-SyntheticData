@@ -59,7 +59,7 @@ def rwm(n, database, epsilon=1, dim=1):
     # get histograms
     #k = int(np.sqrt(n))
     k = n
-    hist_of_database = stats.rv_histogram(np.histogram(database, bins=int(np.sqrt(len(database))), density=True))
+    #hist_of_database = stats.rv_histogram(np.histogram(database, bins=int(np.sqrt(len(database))), density=True))
     hist_of_SD = stats.rv_histogram(np.histogram(database, bins=int(np.sqrt(len(database))), weights=pmeasure.reshape((len(database),1)), density=True))
     #kde_of_SD = stats.gaussian_kde(database.reshape((len(database),)), weights=pmeasure.reshape((len(database),)))
     synthetic_data = hist_of_SD.rvs(size=(k,dim))
@@ -67,7 +67,7 @@ def rwm(n, database, epsilon=1, dim=1):
     # get distances between histograms
     W1 = metrics.multivW1(database, database, w2=pmeasure)
     # INITIALISE HISTOGRAMS TO COMPUTE L2 AND KS DISTANCES and initialise m
-    m = int(n**(dim/(2+dim)))
+    m = int(np.sqrt(n))
     Hist_DB = Histogram(database, bin_amt=m, dim=dim, delta=0)
     Hist_SD = Histogram(synthetic_data, bin_amt=m, dim=dim, delta=0)
     # COMPUTE L2 DISTANCE
@@ -82,11 +82,8 @@ def rwm(n, database, epsilon=1, dim=1):
 
 
 def perturb_weights(n, alpha, dim=1):
-    rws = []
-    for _ in range(dim):
-        random_walk = data.get_superregular_rw(n)
-        U = random_walk*2/alpha
-        rws.append(U)
+    rws = data.get_superregular_rw(n)
+    rws = rws*2/alpha
     
     #print("maximum of rw: " + str(np.max(rws)))
     uniform_weights = np.full((dim, n),1/n)

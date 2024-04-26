@@ -26,7 +26,7 @@ def W1(sample1, sample2, w1=[], w2=[]):
     return pot.wasserstein_1d(u_values=sample1, v_values=sample2, u_weights=w1, v_weights=w2, require_sort=True)
 
 
-def multivW1(sample1, sample2, w1=[], w2=[], metric="euclidean"):
+def multivW1(sample1, sample2, w1=[], w2=[], metric="chebyshev"):
 
     #mu_1 = mu_1.reshape((len(mu_1), 1))
     #mu_2 = mu_2.reshape((len(mu_2), 1))
