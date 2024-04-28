@@ -595,18 +595,18 @@ elif test == "all_convergence":
     reps = 7
     ''''''
     #Ns = [int(np.exp(i)) for i in np.linspace(6, int(np.log(n)), 8)]
-    maxNs = [15000, 8000, 4000, 800]
-    types = ["ACS", "SBT", "ACSBIN"]
+    maxNs = [15000, 8000, 4000, 700]
+    types = ["", "", "ACSBIN"]
     for databasetype in types:
         print("--------------")
         print("--------------")
         print("SWITCH TO "+databasetype)
         print("--------------")
         print("--------------")
-        for dim in [1,4]:
+        for dim in [1,3,4]:
             n = maxNs[dim-1]
             #Ns = [int(i) for i in np.linspace(100, n, 6)]
-            Ns = [int(np.exp(i)) for i in np.linspace(np.log(200), np.log(n), 6)]
+            Ns = [int(np.exp(i)) for i in np.linspace(np.log(300), np.log(n), 6)]
             print("--------------")
             print("dim = " +str(dim))
             print("--------------")
@@ -621,12 +621,12 @@ elif test == "all_supplementary":
     #hist.display_smooth_accuracy(display=display)
     #hist.display_smooth_histogram(display=display)
     
-    maxNs = [10000, 6000, 6000, 800]
+    maxNs = [10000, 6000, 4000, 800]
     databasetype = "SBT"
     epsilon = 1
     reps = 1
     distances = ['L2', 'KS', 'W1']
-    '''
+    
     for dim in range(1,3):
         print("dim = " + str(dim))
         n = maxNs[dim-1]
@@ -658,7 +658,7 @@ elif test == "all_supplementary":
             plt.legend()
             fig.savefig('./imgs/algos/reference/SHist/'+distance+'_'+str(dim)+'.png', dpi=300, bbox_inches='tight')
             plt.close()
-    '''
+    
     print("SWITCH TO PHIST")
     distances = ['L2', 'KS', 'W1']
     Ns = [100, 1000, 6000]

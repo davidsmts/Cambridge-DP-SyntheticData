@@ -113,10 +113,20 @@ class Histogram:
 
     #
     def set_perturbed(self, noise=[]):
-        if len(noise) == 0:
-            np.random.laplace(0, 8, (self.bin_amt for _ in range(self.dim)))
+        if len(noise) == 0 or len(np.where(noise < 0, noise, noise))==len(noise):
+            noise = np.random.laplace(0, 8, [self.bin_amt for _ in range(self.dim)])
+        print("NOISE")
+        print(noise)
         D = self.counts + noise.reshape(self.counts.shape)
+        print("D")
+        print(D)
         D[D<0] = 0
+        print(D)
+        if np.sum(D) == 0:
+            print("SUM IS ZERO")
+        elif np.sum(D) == np.inf:
+            print("SUM IS INF")
+
         p = D / np.sum(D)
         self.noisy_counts = D
         self.probabilities = p
@@ -527,9 +537,7 @@ def display_smooth_histogram(display = True):
     F2 = Histogram(database, bin_amt=k, dim=1, delta=1/delt)
     F3 = stats.rv_histogram((F2.probabilities, F2.boundaries[0]), density=True)
     bins, edges = np.histogramdd(database, bins=k, density=True)
-    print(bins)
     F4 = stats.rv_histogram(F2.get_smooth(), density=True)
-    print(F2.boundaries)
     fig=plt.figure(figsize=(7,6))
     plt.plot(x, F1.pdf(x), label="regular")
     #plt.plot(x, F2.pdf(x), label="custom2")
@@ -544,12 +552,11 @@ def display_smooth_histogram(display = True):
 
 def display_perturbed_accuracy(display = True):
     d = 1
-    database = data.getACS(dim=d)
-    Ns = [int(np.exp(i)) for i in np.linspace(4, int(np.log(20000)), 20)]
+    Ns = [int(np.exp(i)) for i in np.linspace(6, int(np.log(30000)), 10)]
     print(Ns)
-    x = np.linspace(0, 1, 300)
+    database = data.getACS(amt=max(Ns), dim=d)
     epsilon = 1
-    reps = 1
+    reps = 10
     all_RKHS_kme = []
     all_W1_rwm = []
     all_W1_phist = []
@@ -560,25 +567,23 @@ def display_perturbed_accuracy(display = True):
     all_TF_subs = []
     for rep in range(reps):
         if rep%3 == 0: print(rep)
-        KS, L2, W1_phist = asymptotic_perturbed(Ns, x, database, epsilon, dim=d)
+        time, KS, L2, W1_phist, TF = asymptotic_perturbed(Ns, database, epsilon, dim=d)
 
         all_W1_phist.append(W1_phist)
         all_L2_phist.append(L2)
         all_KS_phist.append(KS)
 
     all_W1_phist = np.mean(all_W1_phist, axis=0)
-    print(all_W1_phist)
     all_L2_phist = np.mean(all_L2_phist, axis=0)
-    print(all_L2_phist)
     all_KS_phist = np.mean(all_KS_phist, axis=0)
-    L2_bnd = [100*n**(-2/3) for n in Ns]
-    KS_bnd = [np.sqrt(np.log(n)/n) for n in Ns]
+    L2_bnd = [n**(-2/3) for n in Ns]
+    KS_bnd = [min(np.sqrt(np.log(n)/n), np.log(n)*n**(-2/3)) for n in Ns]
     fig=plt.figure(figsize=(7,6))
     plt.loglog(Ns, all_W1_phist, label="W1", linestyle="solid")
     plt.loglog(Ns, all_L2_phist, label="L2", linestyle="dotted")
-    plt.loglog(Ns, L2_bnd, label="n^(-2/3)", color=(0.8, 0.439, 0), alpha=0.9, linestyle="dotted")
+    plt.loglog(Ns, L2_bnd, label="n^(-2/5)", color=(0.8, 0.439, 0), alpha=0.9, linestyle="dotted")
     plt.loglog(Ns, all_KS_phist, label="KS", linestyle="dashed")
-    plt.loglog(Ns, KS_bnd, label="(logn/n)^(1/2)", color="green", alpha=0.9, linestyle="dashed")
+    plt.loglog(Ns, KS_bnd, label="(logn)^(1/2)n^(-2/7)", color="green", alpha=0.9, linestyle="dashed")
     plt.xlabel("database size")
     plt.ylabel("distance between true and synthetic data")
     plt.legend()
@@ -588,13 +593,13 @@ def display_perturbed_accuracy(display = True):
 
 
 def display_smooth_accuracy(display=True):
-    d = 2
+    d = 1
     database = data.getACS(dim=d)
-    Ns = [int(np.exp(i)) for i in np.linspace(4, int(np.log(20000)), 20)]
+    Ns = [int(np.exp(i)) for i in np.linspace(6, int(np.log(20000)), 10)]
     print(Ns)
     x = np.linspace(0, 1, 300)
     epsilon = 1
-    reps = 1
+    reps = 10
 
     all_W1_shist = []
     all_L2_shist = []
@@ -603,7 +608,7 @@ def display_smooth_accuracy(display=True):
     for rep in range(reps):
         if rep%3 == 0: print(rep)
         #KS, L2, W1_phist = asymptotic_perturbed(Ns, x, database, epsilon, dim=d)
-        KS, L2, W1 = asymptotic_smooth(Ns, x, database, epsilon, dim=d)
+        time, KS, L2, W1, TF = asymptotic_smooth(Ns, database, epsilon, dim=d)
         all_W1_shist.append(W1)
         all_L2_shist.append(L2)
         all_KS_shist.append(KS)
@@ -613,8 +618,8 @@ def display_smooth_accuracy(display=True):
     all_L2_shist = np.mean(all_L2_shist, axis=0)
     print(all_L2_shist)
     all_KS_shist = np.mean(all_KS_shist, axis=0)
-    L2_bnd = [50*n**(-2/3) for n in Ns]
-    KS_bnd = [1/2*n**(-2/5) for n in Ns] 
+    L2_bnd = [n**(-2/5) for n in Ns]
+    KS_bnd = [np.sqrt(np.log(n))*n**(-2/7) for n in Ns]
 
     fig=plt.figure(figsize=(7,6))
     plt.loglog(Ns, all_W1_shist, label="W1", linestyle="solid")

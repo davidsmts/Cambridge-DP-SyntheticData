@@ -16,11 +16,22 @@ ACSIncomeBin = folktables.BasicProblem(
     postprocess=lambda x: np.nan_to_num(x, -1),
 )
 
+ACSPubCov_Manual = folktables.BasicProblem(
+    features=[
+        "AGEP", "COW", "SCHL","RELP","RAC1P"
+    ],
+    target='PUBCOV',
+    target_transform=lambda x: x == 1,    
+    group='RAC1P',
+    preprocess=folktables.public_coverage_filter,
+    postprocess=lambda x: np.nan_to_num(x, -1),
+)
+
 
 def getACS(dim=1, amt=100000):
     data_source = folktables.ACSDataSource(survey_year='2018', horizon='1-Year', survey='person')
     acs_data = data_source.get_data(states=["CA", "TX"], download=True)
-    features, label, group = folktables.ACSIncome.df_to_numpy(acs_data)
+    features, label, group = ACSPubCov_Manual.df_to_numpy(acs_data)
     features = features[:,:dim]
     #maxs = np.max(features, axis=0)
     rescaled_features = (features - np.min(features)) / (np.max(features) - np.min(features))
@@ -48,10 +59,6 @@ def getBinACS(dim=1, amt=100000):
 def laplacian_noise(loc, sigma, shape=None):
     return np.random.laplace(loc, sigma, shape)
 
-#
-def discrete_laplacian_noise(sigma, shape=None, bounds=(0, 1)):
-    lap = DiscreteLaplace(a = bounds[0], b = bounds[1])
-    return lap.rvs(sigma, shape)
 
 #
 def manual_discrete_laplacian_noise(sigma, true_count=2):
@@ -108,7 +115,7 @@ def exponential_mechanism(database, R, utility, N, sensitivity, epsilon):
 # See Wassermann&Zhou paper chapter 4.
 def WZ_Lap_noise(epsilon, amt, dim=1):
     if dim == 1:
-        return laplacian_noise(0, 8/epsilon**2, (amt,1))
+        return laplacian_noise(0, 8/epsilon**2, (amt,))
     else:
         return laplacian_noise(0, 8/epsilon**2, tuple([amt for _ in range(dim)]))
 
@@ -205,12 +212,12 @@ def binary_binomial_sample(amt, dim=0):
     return np.random.binomial(1, p, (amt, dim))
 
 
-def get_binary_testfunctions_upto(dimension=1, order=3, max_order=False):
+def get_binary_testfunctions_upto(dimension=1, order=2, max_order=False):
     if max_order:
         order = dimension
     else:
-        if dimension >= 3:
-            order = 3
+        if dimension >= 2:
+            order = 2
         else:
             order = dimension
 
