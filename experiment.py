@@ -94,5 +94,33 @@ def plot_haar_basis_functions(n):
     plt.show()
 
 # Example usage:
-level = 4
-plot_haar_basis_functions(level)
+#level = 4
+#plot_haar_basis_functions(level)
+
+from itertools import product
+
+#def KS(probabilities1, probabilities2, dim):
+n = 10
+dim=1
+probabilities = np.full((n,dim),1/n)
+probabilities = np.full((n,dim),1/n)
+orig_space = np.arange(start=0, stop=n+1)
+orig_space = orig_space/n
+spaces = [orig_space for _ in range(dim)]
+space = list(product(*spaces))
+space_arr = np.array(space)
+#for locations in space_arr:
+#    if dim == 1:
+
+
+m = 10
+KS = 0
+currsum = 0
+i1, i2, i3 = 0, 0, 0
+for i1 in range(m):
+    for i2 in range(m):
+        for i3 in range(m):
+            currsum += probabilities1[i1,i2,i3] - probabilities2[i1,i2,i3]
+            if currsum >= KS:
+                KS = currsum
+

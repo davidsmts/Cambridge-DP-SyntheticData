@@ -73,7 +73,7 @@ def rwm(n, database, epsilon=1, dim=1):
     # COMPUTE L2 DISTANCE
     L2 = metrics.smartL2_hypercube(Hist_DB.probabilities, Hist_SD.probabilities, m)
     # COMPUTE KS DISTANCE
-    KS = metrics.smartKS_hypercube(Hist_DB.probabilities, Hist_SD.probabilities, m)
+    KS = metrics.smartKS_hypercube(Hist_DB.probabilities, Hist_SD.probabilities, m, dim=dim)
     # TF
     test_functions = data.get_binary_testfunctions_upto(dimension=dim, max_order=False)
     TF = metrics.wrt_marginals(test_functions=test_functions, sample1=database[:n], sample2=synthetic_data, dim=dim)

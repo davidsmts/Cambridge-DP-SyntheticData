@@ -112,10 +112,55 @@ def smartL2_hypercube(probabilities1, probabilities2, bin_amt):
     return L2norm
 
 
-def smartKS_hypercube(probabilities1, probabilities2, bin_amt):
-    diff = np.abs(probabilities1 - probabilities2)
-    maximum = np.max(diff)
-    return maximum
+# This is probably the saddest function I have ever written.
+# But hey. Time is valuable.
+def smartKS_hypercube(probabilities1, probabilities2, bin_amt, dim=1):
+    bin_amt = len(probabilities1)
+    KS = 0
+    sum1 = 0
+    sum2 = 0
+    if dim == 1:
+        for i in range(bin_amt):
+            sum1 += probabilities1[i]
+            sum2 += probabilities2[i]
+            current_difference = np.abs(sum1 - sum2)
+            if current_difference > KS:
+                KS = 1/bin_amt*current_difference
+
+    if dim == 2:
+        for i1 in range(bin_amt):
+            for i2 in range(bin_amt):
+                sum1 += probabilities1[i1,i2]
+                sum2 += probabilities2[i1,i2]
+                current_difference = np.abs(sum1 - sum2)
+                if current_difference > KS:
+                    KS = bin_amt**(-2) * current_difference
+
+    if dim == 3:
+        for i1 in range(bin_amt):
+            for i2 in range(bin_amt):
+                for i3 in range(bin_amt):
+                    #print("probs")
+                    #print(probabilities1)
+                    sum1 += probabilities1[i1,i2,i3]
+                    sum2 += probabilities2[i1,i2,i3]
+                    current_difference = np.abs(sum1 - sum2)
+                    #print(current_difference)
+                    if current_difference > KS:
+                        KS = bin_amt**(-3)*current_difference
+
+    if dim == 4:
+        for i1 in range(bin_amt):
+            for i2 in range(bin_amt):
+                for i3 in range(bin_amt):
+                    for i4 in range(bin_amt):
+                        sum1 += probabilities1[i1,i2,i3,i4]
+                        sum2 += probabilities2[i1,i2,i3,i4]
+                        current_difference = np.abs(sum1 - sum2)
+                        if current_difference > KS:
+                            KS = bin_amt**(-4)*current_difference
+
+    return KS
 
 
 def Renyi(mu, nu):

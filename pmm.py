@@ -130,7 +130,7 @@ def asymptotic_pmm(Ns, database=[], epsilon=0, dim=1):
         L2 = metrics.smartL2_hypercube(Hist_DB.probabilities, Hist_SD.probabilities, m)
         L2_dists.append(L2)
         # COMPUTE KS DISTANCE
-        KS = metrics.smartKS_hypercube(Hist_DB.probabilities, Hist_SD.probabilities, m)
+        KS = metrics.smartKS_hypercube(Hist_DB.probabilities, Hist_SD.probabilities, m, dim=dim)
         KS_dists.append(KS)
         # 
         test_functions = data.get_binary_testfunctions_upto(dimension=dim, max_order=False)

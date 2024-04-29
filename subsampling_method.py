@@ -314,7 +314,7 @@ def subsampling_mechanism_bin(database, test_functions, delta, gamma, k, sigma, 
     # Calculate distances between the different distributions/histograms
     W1 = metrics.multivW1(database, y)
     L2 = metrics.smartL2_hypercube(Hist_DB.probabilities, Hist_SD.probabilities, m)
-    KS = metrics.smartKS_hypercube(Hist_DB.probabilities, Hist_SD.probabilities, m)
+    KS = metrics.smartKS_hypercube(Hist_DB.probabilities, Hist_SD.probabilities, m, dim=dim)
     TF = metrics.wrt_marginals(test_functions, database, y, dim=dim)
     return stop_time, KS, L2, W1, TF
 

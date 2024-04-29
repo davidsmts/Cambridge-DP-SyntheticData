@@ -115,13 +115,13 @@ class Histogram:
     def set_perturbed(self, noise=[]):
         if len(noise) == 0 or len(np.where(noise < 0, noise, noise))==len(noise):
             noise = np.random.laplace(0, 8, [self.bin_amt for _ in range(self.dim)])
-        print("NOISE")
-        print(noise)
+        #print("NOISE")
+        #print(noise)
         D = self.counts + noise.reshape(self.counts.shape)
-        print("D")
-        print(D)
+        #print("D")
+        #print(D)
         D[D<0] = 0
-        print(D)
+        #print(D)
         if np.sum(D) == 0:
             print("SUM IS ZERO")
         elif np.sum(D) == np.inf:
@@ -407,7 +407,6 @@ def asymptotic_perturbed(Ns, database=[], epsilon=1, dim=1, rwm=False):
         times.append(n_time)
         all_TF.append(TF)
         
-    
     return times, all_KS, all_L2, all_W1, all_TF
 
 def asymptotic_smooth(Ns, database=[], epsilon=1, dim=1):
@@ -424,14 +423,13 @@ def asymptotic_smooth(Ns, database=[], epsilon=1, dim=1):
         times.append(n_time)
         all_TF.append(TF)
 
-
     return times, all_KS, all_L2, all_W1, all_TF
 
 def get_perturbed_accuracy(database, epsilon, x=[], dim=1, rwm=False):
     start_time = time.time()
     #
     n = len(database)
-    m = int(n**(dim/(2+dim)))   # don't need a case distinction for m here because they're the same for KS and L2
+    m = int(np.ceil(n**(dim/(2+dim))))   # don't need a case distinction for m here because they're the same for KS and L2
     #epsilon = np.sqrt(n)
     # Get empirical distribution frim the data. This will be used to measure the accuracy below.
     #F = stats.rv_histogram(np.histogram(database, bins=int(np.sqrt(len(database)))))
@@ -446,7 +444,8 @@ def get_perturbed_accuracy(database, epsilon, x=[], dim=1, rwm=False):
         histogram.set_rwm_perturbed()
     else:
         # Generate noise based on wasserstein&zhou paper
-        LapNoise = data.WZ_Lap_noise(epsilon, m, dim=dim)
+        #LapNoise = data.WZ_Lap_noise(epsilon, m, dim=dim)
+        LapNoise = np.random.laplace(0, 8/epsilon**2, tuple([m for _ in range(dim)]))
         # Create a perturbed histogram
         histogram = Histogram(data=database, bin_amt=m, dim=dim)
         histogram.set_perturbed(LapNoise)
@@ -469,7 +468,7 @@ def get_perturbed_accuracy(database, epsilon, x=[], dim=1, rwm=False):
     
     W1 = metrics.multivW1(database, synthetic_data)
     L2 = metrics.smartL2_hypercube(Data_Hist.probabilities, SD_Hist.probabilities, m)
-    KS = metrics.smartKS_hypercube(Data_Hist.probabilities, SD_Hist.probabilities, m)
+    KS = metrics.smartKS_hypercube(Data_Hist.probabilities, SD_Hist.probabilities, m, dim=dim)
     # TF
     test_functions = data.get_binary_testfunctions_upto(dimension=dim, max_order=False)
     TF = metrics.wrt_marginals(test_functions=test_functions, sample1=database, sample2=synthetic_data, dim=dim)
@@ -514,7 +513,7 @@ def get_smooth_accuracy(database, dim=1, distance="L2", epsilon=1):
     # Calculate the difference between the two distributions for various metrics
     W1 = metrics.multivW1(database, synthetic_data_KS)
     L2 = metrics.smartL2_hypercube(SD_Hist_L2.probabilities, Data_Hist_L2.probabilities, m_L2)
-    KS = metrics.smartKS_hypercube(SD_Hist_KS.probabilities, Data_Hist_KS.probabilities, m_KS)
+    KS = metrics.smartKS_hypercube(SD_Hist_KS.probabilities, Data_Hist_KS.probabilities, m_KS, dim=dim)
     #print("--------KS---------")
     #print(synthetic_data_KS)
     #print(KS)
@@ -552,11 +551,11 @@ def display_smooth_histogram(display = True):
 
 def display_perturbed_accuracy(display = True):
     d = 1
-    Ns = [int(np.exp(i)) for i in np.linspace(6, int(np.log(30000)), 10)]
+    Ns = [int(np.exp(i)) for i in np.linspace(4.5, int(np.log(20000)), 6)]
     print(Ns)
     database = data.getACS(amt=max(Ns), dim=d)
     epsilon = 1
-    reps = 10
+    reps = 5
     all_RKHS_kme = []
     all_W1_rwm = []
     all_W1_phist = []
@@ -576,14 +575,15 @@ def display_perturbed_accuracy(display = True):
     all_W1_phist = np.mean(all_W1_phist, axis=0)
     all_L2_phist = np.mean(all_L2_phist, axis=0)
     all_KS_phist = np.mean(all_KS_phist, axis=0)
-    L2_bnd = [n**(-2/3) for n in Ns]
-    KS_bnd = [min(np.sqrt(np.log(n)/n), np.log(n)*n**(-2/3)) for n in Ns]
+    L2_bnd = [3*n**(-2/3) for n in Ns]
+    # , np.log(n)/n**(2/3), np.sqrt(np.log(n)/n)
+    KS_bnd = [min(np.sqrt(np.log(n)/n), np.log(n)/n**(2/3)) for n in Ns]
     fig=plt.figure(figsize=(7,6))
     plt.loglog(Ns, all_W1_phist, label="W1", linestyle="solid")
     plt.loglog(Ns, all_L2_phist, label="L2", linestyle="dotted")
     plt.loglog(Ns, L2_bnd, label="n^(-2/5)", color=(0.8, 0.439, 0), alpha=0.9, linestyle="dotted")
     plt.loglog(Ns, all_KS_phist, label="KS", linestyle="dashed")
-    plt.loglog(Ns, KS_bnd, label="(logn)^(1/2)n^(-2/7)", color="green", alpha=0.9, linestyle="dashed")
+    plt.loglog(Ns, KS_bnd, label="min(sqrt(log(n)/n), log(n)/n**(2/3))", color="green", alpha=0.9, linestyle="dashed")
     plt.xlabel("database size")
     plt.ylabel("distance between true and synthetic data")
     plt.legend()
@@ -594,8 +594,8 @@ def display_perturbed_accuracy(display = True):
 
 def display_smooth_accuracy(display=True):
     d = 1
-    database = data.getACS(dim=d)
-    Ns = [int(np.exp(i)) for i in np.linspace(6, int(np.log(20000)), 10)]
+    Ns = [int(np.exp(i)) for i in np.linspace(6, int(np.log(30000)), 10)]
+    database = data.schoel_balog_tostik_sample(amt=max(Ns), dim=d)
     print(Ns)
     x = np.linspace(0, 1, 300)
     epsilon = 1
@@ -614,12 +614,10 @@ def display_smooth_accuracy(display=True):
         all_KS_shist.append(KS)
 
     all_W1_shist = np.mean(all_W1_shist, axis=0)
-    print(all_W1_shist)
     all_L2_shist = np.mean(all_L2_shist, axis=0)
-    print(all_L2_shist)
     all_KS_shist = np.mean(all_KS_shist, axis=0)
-    L2_bnd = [n**(-2/5) for n in Ns]
-    KS_bnd = [np.sqrt(np.log(n))*n**(-2/7) for n in Ns]
+    L2_bnd = [1/5*n**(-2/5) for n in Ns]
+    KS_bnd = [1/20*np.sqrt(np.log(n))*n**(-2/7) for n in Ns]
 
     fig=plt.figure(figsize=(7,6))
     plt.loglog(Ns, all_W1_shist, label="W1", linestyle="solid")

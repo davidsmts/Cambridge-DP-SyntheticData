@@ -592,18 +592,18 @@ elif test == "rw_on_others":
 
 elif test == "all_convergence":
     display = False
-    reps = 7
+    reps = 5
     ''''''
     #Ns = [int(np.exp(i)) for i in np.linspace(6, int(np.log(n)), 8)]
     maxNs = [15000, 8000, 4000, 700]
-    types = ["", "", "ACSBIN"]
+    types = ["ACS", "SBT", "ACSBIN"]
     for databasetype in types:
         print("--------------")
         print("--------------")
         print("SWITCH TO "+databasetype)
         print("--------------")
         print("--------------")
-        for dim in [1,3,4]:
+        for dim in [1,3]:
             n = maxNs[dim-1]
             #Ns = [int(i) for i in np.linspace(100, n, 6)]
             Ns = [int(np.exp(i)) for i in np.linspace(np.log(300), np.log(n), 6)]
@@ -624,7 +624,7 @@ elif test == "all_supplementary":
     maxNs = [10000, 6000, 4000, 800]
     databasetype = "SBT"
     epsilon = 1
-    reps = 1
+    reps = 5
     distances = ['L2', 'KS', 'W1']
     
     for dim in range(1,3):
