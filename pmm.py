@@ -110,16 +110,16 @@ def asymptotic_pmm(Ns, database=[], epsilon=0, dim=1):
         if epsilon == 0:
             epsilon = np.log2(n)
         if dim == 1:
-            r = int(np.ceil(np.log2(epsilon*n)))-1
+            r = int(np.round(np.log2(epsilon*n)))-1
         else:
-            r = int(np.ceil(np.log2(epsilon*n)))
+            r = int(np.round(np.log2(epsilon*n)))
         #print("Depth = " + str(r))
         # Stop the time
         n_time, synthetic_data = pmm(database[:n], depth=r, dim=dim, epsilon=epsilon)
         times.append(n_time)
         #print(synthetic_data.shape)
         # Measure
-        w1 = metrics.multivW1(database[:n], synthetic_data, metric="chebyshev")
+        w1 = metrics.multivW1(database[:n], synthetic_data)
         #w1 = metrics.multivW1(database[:n], synthetic_data)
         W1_dists.append(w1)
         # INITIALISE HISTOGRAMS TO COMPUTE L2 AND KS DISTANCES and initialise m

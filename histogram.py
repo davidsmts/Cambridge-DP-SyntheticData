@@ -14,40 +14,22 @@ colors = ["blue", "green", "orange", "red"]
 # Smooth histogram method
 
 class Histogram:
-    def __init__(self, data, bin_amt=-1, dim=1, delta=1/2) -> None:
+    def __init__(self, data, bin_amt=1, dim=1, delta=1/2) -> None:
         self.data = data
         self.bin_amt = bin_amt
         self.dim = dim
         self.delta = delta
+        self.bin_volume = (1/bin_amt)**dim
+        #print("vol = " + str(self.bin_volume))
+        #print("bin amt = " + str(self.bin_amt))
+        #print("delta = " + str(self.delta))
         self.get_counts()
-        pass
+        #print("len of ..." + str(len(self.counts[self.counts < 0])))
 
-    def evaluate(self, x):
-        multidim = np.array(list(it.product(x)))
-        indices = []
-        for d in range(self.dim):
-            column = x[:]
-            id_col = np.digitize(column, self.boundaries[d], right=False)
-            id_col = np.clip(id_col, 0, self.bin_amt)
-            indices.append(id_col.tolist())
-        indices = np.array(indices[0])
-        vals = []
-        for index in indices:
-            vals.append(self.counts[index-1])
-        indices_small = (x < np.min(self.boundaries)).nonzero()
-        indices_large = (x > np.max(self.boundaries)).nonzero()
-        for index in indices_small[0]:
-            vals[index] = 0
-        for index in indices_large[0]:
-            vals[index] = 0
-        return vals
-    
-    #
-    def pdf(self, x):
-        return self.evaluate(x)
 
     #
     def get_counts(self):
+        #print("get_counts")
         bin_amts = np.full(self.dim, fill_value=self.bin_amt)
         #print("np hsitdd")
         # this can take a lot of time if there are too many bins
@@ -55,12 +37,22 @@ class Histogram:
         #print("DONE histdd")
         self.boundaries = np.array(edges)
         self.counts = true_counts
+        if len(true_counts[true_counts < 0])>0:
+            print("ERROR!")
+            #print("counts < 0: " + str(len(true_counts[true_counts < 0])))
+            raise Exception("counts < 0: " + str(len(true_counts[true_counts < 0])))
         self.probabilities = true_counts / np.sum(true_counts)
+        if len(self.probabilities[self.probabilities < 0])>0:
+            print("ERROR!")
+            #print("counts < 0: " + str(len(true_counts[true_counts < 0])))
+            raise Exception("counts < 0: " + str(len(self.probabilities[self.probabilities < 0])))
 
     #
     def sample(self, amt, dim=1):
         initial_shape = self.probabilities.shape
+        #print(len(self.probabilities[self.probabilities<0]))
         flat_p = self.probabilities.flatten()
+        #print(len(flat_p[flat_p<0]))
         choices = np.random.choice(np.arange(len(flat_p)), size=amt, p=flat_p)
         ddim_indices = self.get_indices_new(choices, flat_p)
         points = self.get_points_from_indices(ddim_indices)
@@ -68,6 +60,7 @@ class Histogram:
     
     #
     def get_indices(self, choices):
+        #print("get_indices")
         indices = []
         for choice in choices:
             index_k = []
@@ -79,6 +72,7 @@ class Histogram:
     
     #
     def get_indices_new(self, choices, flat_p):
+        #print("get_indices_new")
         indices = []
         index_tensor = np.reshape(np.arange(len(flat_p)), newshape=self.probabilities.shape)
         for choice in choices:
@@ -89,6 +83,7 @@ class Histogram:
     
     #
     def get_points_from_indices(self, indices):
+        #print("get_points_from_indices")
         points = []
         for j, index in enumerate(indices):
             lb = []
@@ -105,14 +100,26 @@ class Histogram:
 
     #
     def set_smooth(self):
-        self.counts = (1-self.delta)*self.counts + self.delta
+        #print("set_smooth")
+        #self.counts = (1-self.delta)*self.counts + self.delta
         #self.counts = hist_vals
-        newprobs = (1-self.delta)*self.probabilities + self.delta
-        self.probabilities = newprobs / np.sum(newprobs)
+        #print(np.sum(self.probabilities))
+        #print(self.delta)
+        #print(self.probabilities)
+        #print(self.bin_volume)
+        #print("probabs")
+        #print(len(self.probabilities[self.probabilities<0]))
+        #print("vol="+str(self.bin_volume))
+        #print("del="+str(self.delta))
+        self.probabilities = (1-self.delta)*self.probabilities + self.delta*np.full(shape=self.probabilities.shape, fill_value=self.bin_volume)
+        #print(len(self.probabilities[self.probabilities<0]))
+        #print(np.sum(self.probabilities))
+        #self.probabilities = newprobs / np.sum(newprobs)
         #return (hist_vals, self.boundaries[0])
 
     #
     def set_perturbed(self, noise=[]):
+        #print("set_perturbed")
         if len(noise) == 0 or len(np.where(noise < 0, noise, noise))==len(noise):
             noise = np.random.laplace(0, 8, [self.bin_amt for _ in range(self.dim)])
         #print("NOISE")
@@ -134,6 +141,7 @@ class Histogram:
     
     #
     def set_rwm_perturbed(self, noise=[]):
+        #print("set_rwm_perturbed")
         if len(noise) == 0:
             noise = data.get_superregular_rw(self.bin_amt**self.dim)
         D = self.counts + noise.reshape(self.counts.shape)
@@ -429,7 +437,7 @@ def get_perturbed_accuracy(database, epsilon, x=[], dim=1, rwm=False):
     start_time = time.time()
     #
     n = len(database)
-    m = int(np.ceil(n**(dim/(2+dim))))   # don't need a case distinction for m here because they're the same for KS and L2
+    m = int(n**(dim/(2+dim)))   # don't need a case distinction for m here because they're the same for KS and L2
     #epsilon = np.sqrt(n)
     # Get empirical distribution frim the data. This will be used to measure the accuracy below.
     #F = stats.rv_histogram(np.histogram(database, bins=int(np.sqrt(len(database)))))
@@ -445,10 +453,10 @@ def get_perturbed_accuracy(database, epsilon, x=[], dim=1, rwm=False):
     else:
         # Generate noise based on wasserstein&zhou paper
         #LapNoise = data.WZ_Lap_noise(epsilon, m, dim=dim)
-        LapNoise = np.random.laplace(0, 8/epsilon**2, tuple([m for _ in range(dim)]))
+        #LapNoise = np.random.laplace(0, 8/epsilon**2, tuple([m for _ in range(dim)]))
         # Create a perturbed histogram
         histogram = Histogram(data=database, bin_amt=m, dim=dim)
-        histogram.set_perturbed(LapNoise)
+        histogram.set_perturbed()
     # Set k to .. based on Wasserstein&Zhou paper
     k = len(database)
     # Sample k points from our histogram
@@ -480,8 +488,8 @@ def get_smooth_accuracy(database, dim=1, distance="L2", epsilon=1):
     start_time = time.time()
     n = len(database)
     #
-    k_KS = int((n**(4/(6+dim))))
-    m_KS = int(n**(dim/(2+dim)))
+    k_KS = int(n**(4/(6+dim)))
+    m_KS = int(n**(dim/(6+dim)))
     delta_KS = m_KS*k_KS/(n*epsilon)
     #
     delta_L2 = n**(-1/(dim+3))
@@ -520,9 +528,12 @@ def get_smooth_accuracy(database, dim=1, distance="L2", epsilon=1):
     # TF
     test_functions = data.get_binary_testfunctions_upto(dimension=dim, max_order=False)
     TF = metrics.wrt_marginals(test_functions=test_functions, sample1=database, sample2=synthetic_data_L2, dim=dim)
-
+    #
     return stop_time, KS, L2, W1, TF
 
+
+
+#
 def display_smooth_histogram(display = True):
     d = 1
     database = data.schoel_balog_tostik_sample(10000,1)
@@ -549,13 +560,15 @@ def display_smooth_histogram(display = True):
         plt.show()
 
 
+
+#
 def display_perturbed_accuracy(display = True):
     d = 1
-    Ns = [int(np.exp(i)) for i in np.linspace(4.5, int(np.log(20000)), 6)]
+    Ns = [int(np.exp(i)) for i in np.linspace(4.5, int(np.log(20000)), 7)]
     print(Ns)
     database = data.getACS(amt=max(Ns), dim=d)
     epsilon = 1
-    reps = 5
+    reps = 10
     all_RKHS_kme = []
     all_W1_rwm = []
     all_W1_phist = []
@@ -579,10 +592,10 @@ def display_perturbed_accuracy(display = True):
     # , np.log(n)/n**(2/3), np.sqrt(np.log(n)/n)
     KS_bnd = [min(np.sqrt(np.log(n)/n), np.log(n)/n**(2/3)) for n in Ns]
     fig=plt.figure(figsize=(7,6))
-    plt.loglog(Ns, all_W1_phist, label="W1", linestyle="solid")
-    plt.loglog(Ns, all_L2_phist, label="L2", linestyle="dotted")
+    #plt.loglog(Ns, all_W1_phist, label="W1", linestyle="solid")
+    plt.loglog(Ns, all_L2_phist, label="L2", linestyle="dotted", color="orange")
     plt.loglog(Ns, L2_bnd, label="n^(-2/5)", color=(0.8, 0.439, 0), alpha=0.9, linestyle="dotted")
-    plt.loglog(Ns, all_KS_phist, label="KS", linestyle="dashed")
+    plt.loglog(Ns, all_KS_phist, label="KS", linestyle="dashed", color="green")
     plt.loglog(Ns, KS_bnd, label="min(sqrt(log(n)/n), log(n)/n**(2/3))", color="green", alpha=0.9, linestyle="dashed")
     plt.xlabel("database size")
     plt.ylabel("distance between true and synthetic data")
@@ -594,7 +607,7 @@ def display_perturbed_accuracy(display = True):
 
 def display_smooth_accuracy(display=True):
     d = 1
-    Ns = [int(np.exp(i)) for i in np.linspace(6, int(np.log(30000)), 10)]
+    Ns = [int(np.exp(i)) for i in np.linspace(6, int(np.log(40000)), 10)]
     database = data.schoel_balog_tostik_sample(amt=max(Ns), dim=d)
     print(Ns)
     x = np.linspace(0, 1, 300)
@@ -618,12 +631,14 @@ def display_smooth_accuracy(display=True):
     all_KS_shist = np.mean(all_KS_shist, axis=0)
     L2_bnd = [1/5*n**(-2/5) for n in Ns]
     KS_bnd = [1/20*np.sqrt(np.log(n))*n**(-2/7) for n in Ns]
+    W1_bnd = [n**(-2/7) for n in Ns]
 
     fig=plt.figure(figsize=(7,6))
-    plt.loglog(Ns, all_W1_shist, label="W1", linestyle="solid")
-    plt.loglog(Ns, all_L2_shist, label="L2", linestyle="dotted")
-    plt.loglog(Ns, L2_bnd, label="n^(-2/5)", color=(0.8, 0.439, 0), alpha=0.9, linestyle="dotted")
-    plt.loglog(Ns, all_KS_shist, label="KS", linestyle="dashed")
+    plt.loglog(Ns, W1_bnd, label="n^(-2/7)", linestyle="solid", color="blue", alpha=0.9)
+    plt.loglog(Ns, all_W1_shist, label="W1", linestyle="solid", color="blue")
+    plt.loglog(Ns, all_L2_shist, label="L2", linestyle="dotted", color="orange")
+    plt.loglog(Ns, L2_bnd, label="n^(-2/5)", color="orange", alpha=0.9, linestyle="dotted")
+    plt.loglog(Ns, all_KS_shist, label="KS", linestyle="dashed", color="green")
     plt.loglog(Ns, KS_bnd, label="(logn)^(1/2)/n^(2/7)", color="green", alpha=0.9, linestyle="dashed")
     plt.legend()
     plt.xlabel("database size")

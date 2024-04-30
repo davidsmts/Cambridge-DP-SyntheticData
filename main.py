@@ -132,11 +132,16 @@ def compare_higherdim(Ns, display=True, reps=1, databasetype="SBT", dim=1, with_
             if databasetype == "ACSBIN":
                 specdist_subs = all_subs[i]
             if distance == "Time":
+                # Make both a loglog and a normal plot!
                 loglog = False
+                plot_dist(Ns, dists=[specdist_phist, specdist_shist, specdist_pmm, specdist_rwm, specdist_subs], distance=distance, dim=dim, loglog=loglog, databasetype=databasetype, display=False)
+                loglog = True
+                plot_dist(Ns, dists=[specdist_phist, specdist_shist, specdist_pmm, specdist_rwm, specdist_subs], distance=distance, dim=dim, loglog=loglog, databasetype=databasetype, display=False)
             else:
                 loglog = True
+                plot_dist(Ns, dists=[specdist_phist, specdist_shist, specdist_pmm, specdist_rwm, specdist_subs], distance=distance, dim=dim, loglog=loglog, databasetype=databasetype, display=False)
 
-            plot_dist(Ns, dists=[specdist_phist, specdist_shist, specdist_pmm, specdist_rwm, specdist_subs], distance=distance, dim=dim, loglog=loglog, databasetype=databasetype, display=False)
+            
 
     else:
         alldata = all_phist + all_shist + all_pmm
@@ -187,9 +192,9 @@ def plot_dist(Ns, dists=[], distance="L2", dim=1, loglog=True, databasetype="ACS
     plt.title("dimension d="+str(dim))
     plt.legend()
     if loglog:
-        fig.savefig('./imgs/algos/'+distance+'/comparehigherdim_loglog_'+databasetype+'_'+str(dim)+'_'+distance+'_woref.png', dpi=130, bbox_inches='tight')
+        fig.savefig('./imgs/algos3/'+distance+'/compare_loglog_'+databasetype+'_'+str(dim)+'_'+distance+'.png', dpi=130, bbox_inches='tight')
     else:
-        fig.savefig('./imgs/algos/'+distance+'/comparehigherdim_'+databasetype+'_'+str(dim)+'_'+distance+'_woref.png', dpi=130, bbox_inches='tight')
+        fig.savefig('./imgs/algos3/'+distance+'/compare_'+databasetype+'_'+str(dim)+'_'+distance+'.png', dpi=130, bbox_inches='tight')
     if display:
         plt.show()
     else:
@@ -509,16 +514,19 @@ elif test == "show-rwm":
 elif test == "show_pmm":
     n = 1000
     database = data.schoel_balog_tostik_sample(n, 1)
-    r = int(np.log2(n))
+    r = int(np.log2(n))-1
+    print(r)
     time, synthetic_data = pmm.pmm(database, depth=r)
     print(database.shape)
     print(synthetic_data.shape)
     x = np.linspace(min(database),max(database),1000)
-    database_hist = stats.rv_histogram(np.histogram(database, bins=int(np.sqrt(len(database)))))
-    sd_hist = stats.rv_histogram(np.histogram(synthetic_data, bins=int(np.sqrt(len(synthetic_data)))))
+    database_hist = stats.rv_histogram(np.histogram(database, bins=int(np.sqrt(len(database))), density=True), density=True)
+    sd_hist = stats.rv_histogram(np.histogram(synthetic_data, bins=int(np.sqrt(len(synthetic_data))), density=True), density=True)
     fig=plt.figure(figsize=(7,6))
     plt.plot(x, database_hist.pdf(x), label="database")
     plt.plot(x, sd_hist.pdf(x), label="synthetic data")
+    plt.xlabel("values of the dataset")
+    plt.ylabel("values of histogram estimator")
     plt.legend()
     fig.savefig('./imgs/algos/reference/pmm_hist'+str(r)+'.png', dpi=300, bbox_inches='tight')
     plt.show()
@@ -592,11 +600,11 @@ elif test == "rw_on_others":
 
 elif test == "all_convergence":
     display = False
-    reps = 5
+    reps = 7
     ''''''
     #Ns = [int(np.exp(i)) for i in np.linspace(6, int(np.log(n)), 8)]
-    maxNs = [15000, 8000, 4000, 700]
-    types = ["ACS", "SBT", "ACSBIN"]
+    maxNs = [20000, 8000, 4000, 700]
+    types = ["ACSBIN"]
     for databasetype in types:
         print("--------------")
         print("--------------")
@@ -606,7 +614,8 @@ elif test == "all_convergence":
         for dim in [1,3]:
             n = maxNs[dim-1]
             #Ns = [int(i) for i in np.linspace(100, n, 6)]
-            Ns = [int(np.exp(i)) for i in np.linspace(np.log(300), np.log(n), 6)]
+            Ns = [int(np.exp(i)) for i in np.linspace(np.log(300), np.log(n), 8)]
+            print(Ns)
             print("--------------")
             print("dim = " +str(dim))
             print("--------------")
@@ -621,16 +630,16 @@ elif test == "all_supplementary":
     #hist.display_smooth_accuracy(display=display)
     #hist.display_smooth_histogram(display=display)
     
-    maxNs = [10000, 6000, 4000, 800]
+    maxNs = [3000, 6000, 4000, 800]
     databasetype = "SBT"
     epsilon = 1
-    reps = 5
+    reps = 1
     distances = ['L2', 'KS', 'W1']
     
-    for dim in range(1,3):
+    for dim in range(1,2):
         print("dim = " + str(dim))
         n = maxNs[dim-1]
-        Ns = [int(np.exp(i)) for i in np.linspace(np.log(200), np.log(n), 6)]
+        Ns = [int(np.exp(i)) for i in np.linspace(np.log(200), np.log(n), 7)]
         #database = database[:max(Ns),:]
         times, KSs, L2s, W1s, TFs = [], [], [], [], []
         for rep in range(reps):
@@ -655,25 +664,30 @@ elif test == "all_supplementary":
             else:
                 plt.loglog(Ns, W1, label=distance+", dim="+str(dim))
                 plt.loglog(Ns, [n**(-2/(7)) for n in Ns], label="n^(-2/7)", linestyle="dotted")
+            plt.xlabel("size of true database")
+            plt.ylabel("distance between true and synthetic data")
             plt.legend()
             fig.savefig('./imgs/algos/reference/SHist/'+distance+'_'+str(dim)+'.png', dpi=300, bbox_inches='tight')
             plt.close()
     
     print("SWITCH TO PHIST")
     distances = ['L2', 'KS', 'W1']
-    Ns = [100, 1000, 6000]
+    Ns = [100, 1000, 6000, 10000, 15000, 20000]
     for dim in range(1,3):
         print("dim = " + str(dim))
-        database = data.getACS(dim=dim)
-        database = database[:max(Ns),:]
+        database = data.schoel_balog_tostik_sample(amt=max(Ns), dim=dim)
+        #database = database[:max(Ns),:]
         time_shist, KS_shist, L2_shist, W1_shist, TF_shist = hist.asymptotic_perturbed(Ns, database=database, epsilon=epsilon, dim=dim)
         for distance in distances:
             fig=plt.figure(figsize=(7,6))
             if distance == "KS":
                 plt.loglog(Ns, KS_shist, label=distance+", dim="+str(dim))
                 plt.loglog(Ns, [min(np.log(n)/n**(2/(2+dim)), np.sqrt(np.log(n)/n)) for n in Ns], label="min(log(n)/n^(2/(2+d)), sqrt(log(n)/n))", linestyle="dotted")
-            else:
+            elif distance == "L2":
                 plt.loglog(Ns, L2_shist, label="L2, dim="+str(dim))
+                plt.loglog(Ns, [n**(-2/(2+dim)) for n in Ns], label="n^(-2/(2+d))", linestyle="dotted")
+            else: 
+                plt.loglog(Ns, W1_shist, label="W1, dim="+str(dim))
                 plt.loglog(Ns, [n**(-2/(2+dim)) for n in Ns], label="n^(-2/(2+d))", linestyle="dotted")
             plt.legend()
             fig.savefig('./imgs/algos/reference/PHist/'+distance+'_'+str(dim)+'.png', dpi=130, bbox_inches='tight')
