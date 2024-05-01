@@ -127,7 +127,7 @@ class Histogram:
         D = self.counts + noise.reshape(self.counts.shape)
         #print("D")
         #print(D)
-        D[D<0] = 0
+        D = np.maximum(D, np.zeros(D.shape))
         #print(D)
         if np.sum(D) == 0:
             print("SUM IS ZERO")
